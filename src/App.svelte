@@ -23,10 +23,9 @@
   }
 
   async function initWebSocket() {
-    // 自宅サーバー運用前提：Viteと同じホストの8080番ポートへ接続
-    // サーバーがHTTPSならwss、HTTPならwsを自動選択
+    // Cloudflare Tunnelを考慮し、UIと同じホスト・ポートの特定パスへ接続
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.hostname}:8080`;
+    const wsUrl = `${protocol}://${window.location.host}/ws-signaling`;
       
     console.log("Connecting to:", wsUrl);
     socket = new WebSocket(wsUrl);
