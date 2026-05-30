@@ -26,6 +26,7 @@
       ? "ws://localhost:8080" 
       : `wss://${window.location.hostname}/ws`;
       
+    console.log("Connecting to:", wsUrl);
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
