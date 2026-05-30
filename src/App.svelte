@@ -11,6 +11,7 @@
 
   // 安全にメッセージを送信するためのヘルパー
   function safeSend(data) {
+    console.log("Attempting to send:", data);
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(data));
       return true;
@@ -22,9 +23,10 @@
   }
 
   async function initWebSocket() {
-    const wsUrl = import.meta.env.DEV 
-      ? "ws://localhost:8080" 
-      : `wss://${window.location.hostname}/ws`;
+    // 自宅サーバー運用前提：Viteと同じホストの8080番ポートへ接続
+    // サーバーがHTTPSならwss、HTTPならwsを自動選択
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${protocol}://${window.location.hostname}:8080`;
       
     console.log("Connecting to:", wsUrl);
     socket = new WebSocket(wsUrl);
@@ -49,10 +51,14 @@
       console.log("Received:", data);
 
       if (data.type === 'join') {
+        console.log("B has joined. Sending port to B...");
         const message = window.formatPortMessage(String(portInput));
         safeSend({ type: 'signal', key: data.key, data: message });
       } else if (data.type === 'signal') {
+        console.log("Received port data from A!");
         receivedPort = data.data.replace('SHARED_PORT:', '');
+      } else if (data.type === 'error') {
+        alert(data.message);
       }
     };
   }
@@ -100,6 +106,7 @@
 
   // Bさんの処理: キーを使ってポートを取得
   function handleJoin() {
+    console.log("Join button clicked with key:", joinKey);
     if (!joinKey) return alert("キーを入力してください");
     if (connectionStatus !== 'open') return alert("サーバーに接続されていません。再読み込みしてください。");
 

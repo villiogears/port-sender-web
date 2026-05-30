@@ -38,8 +38,8 @@ const wasmSignalingPlugin = (): Plugin => ({
       go.run(result.instance);
       console.log("\x1b[32m%s\x1b[0m", "✓ Signaling WASM Engine started inside Vite process.");
 
-      // 8080ポートでWebSocketサーバーを起動
-      const wss = new WebSocketServer({ port: 8080 });
+      // 自宅サーバーの全てのインターフェースで待機
+      const wss = new WebSocketServer({ port: 8080, host: '0.0.0.0' });
       const clients = new Map<string, any>();
 
       wss.on('connection', (ws) => {
