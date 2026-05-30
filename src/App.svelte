@@ -6,7 +6,55 @@
   let joinKey = '';
   let receivedPort = '';
   let socket;
+  let connectionStatus = 'connecting'; // 'connecting' | 'open' | 'closed' | 'error'
   let isWasmLoaded = false;
+
+  // 安全にメッセージを送信するためのヘルパー
+  function safeSend(data) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(data));
+      return true;
+    } else {
+      console.error("WebSocket is not open. state:", socket?.readyState);
+      connectionStatus = 'closed';
+      return false;
+    }
+  }
+
+  async function initWebSocket() {
+    const wsUrl = import.meta.env.DEV 
+      ? "ws://localhost:8080" 
+      : `wss://${window.location.hostname}/ws`;
+      
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      connectionStatus = 'open';
+      console.log("Connected to signaling server");
+    };
+
+    socket.onclose = () => {
+      connectionStatus = 'closed';
+      console.log("Disconnected from signaling server");
+    };
+
+    socket.onerror = (err) => {
+      connectionStatus = 'error';
+      console.error("WebSocket error:", err);
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("Received:", data);
+
+      if (data.type === 'join') {
+        const message = window.formatPortMessage(String(portInput));
+        safeSend({ type: 'signal', key: data.key, data: message });
+      } else if (data.type === 'signal') {
+        receivedPort = data.data.replace('SHARED_PORT:', '');
+      }
+    };
+  }
 
   onMount(async () => {
     // Go WASM ランタイム (wasm_exec.js) が読み込まれていない場合は動的に追加
@@ -32,53 +80,32 @@
     go.run(result.instance);
     isWasmLoaded = true;
 
-    // WebSocket接続
-    // 開発環境なら localhost:8080、本番環境なら Worker の URL を使用
-    const wsUrl = import.meta.env.DEV 
-      ? "ws://localhost:8080" 
-      : `wss://${window.location.hostname}/ws`; // 同一ドメインの /ws パスへ接続
-      
-    socket = new WebSocket(wsUrl);
-
-    socket.onerror = () => {
-      console.error("シグナリングサーバーに接続できません。Viteが開発モードで起動しているか確認してください。");
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log("Received:", data);
-
-      // シグナリングサーバーからの転送処理
-      if (data.type === 'join') {
-        // Bさんが来たのでAさんがポートを送る
-        const message = window.formatPortMessage(String(portInput));
-        socket.send(JSON.stringify({ type: 'signal', key: data.key, data: message }));
-      } else if (data.type === 'signal') {
-        // BさんがAさんからのデータを受け取る
-        receivedPort = data.data.replace('SHARED_PORT:', '');
-      }
-    };
+    await initWebSocket();
   });
 
   // Aさんの処理: ポートを登録してキーを発行
   function handleHost() {
     if (!portInput) return alert("ポート番号を入力してください");
+    if (connectionStatus !== 'open') return alert("サーバーに接続されていません。再読み込みしてください。");
+    
     // Go WASM関数を呼び出し
     generatedKey = window.generateWasmKey();
     
-    socket.send(JSON.stringify({
+    safeSend({
       type: 'host',
       key: generatedKey
-    }));
+    });
   }
 
   // Bさんの処理: キーを使ってポートを取得
   function handleJoin() {
     if (!joinKey) return alert("キーを入力してください");
-    socket.send(JSON.stringify({
+    if (connectionStatus !== 'open') return alert("サーバーに接続されていません。再読み込みしてください。");
+
+    safeSend({
       type: 'join',
       key: joinKey
-    }));
+    });
   }
 
   function copyToClipboard(text) {
@@ -99,6 +126,16 @@
       </div>
     {:else}
       <div class="card">
+        <div class="status-bar {connectionStatus}">
+          {#if connectionStatus === 'open'}
+            <span class="dot"></span> 接続済み
+          {:else if connectionStatus === 'connecting'}
+            <span class="dot yellow"></span> 接続中...
+          {:else}
+            <span class="dot red"></span> オフライン <button on:click={initWebSocket} class="retry-link">再接続</button>
+          {/if}
+        </div>
+
         <!-- 共有セクション (Person A) -->
         <div class="section">
           <h3><span class="icon">📤</span> ポートを共有する</h3>
@@ -149,6 +186,11 @@
   .app-container { max-width: 500px; margin: 2rem auto; text-align: center; }
   h1 { margin-bottom: 0.2rem; color: #1d1d1f; }
   .subtitle { color: #86868b; margin-top: 0; margin-bottom: 2rem; font-size: 0.9rem; }
+  .status-bar { font-size: 0.75rem; text-align: right; margin-bottom: 1rem; color: #86868b; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34c759; margin-right: 4px; }
+  .dot.yellow { background: #ffcc00; }
+  .dot.red { background: #ff3b30; }
+  .retry-link { background: none; color: #0071e3; font-size: 0.75rem; padding: 0; text-decoration: underline; margin-left: 8px; font-weight: normal; }
   .card {
     background: #ffffff;
     border-radius: 20px;
