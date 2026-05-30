@@ -71,5 +71,8 @@ const wasmSignalingPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [svelte(), wasmSignalingPlugin()]
+  plugins: [svelte(), wasmSignalingPlugin()],
+  server: {
+    allowedHosts: ['portfwd.elphadeal.f5.si']
+  }
 });
