@@ -43,7 +43,8 @@
         socket.send(JSON.stringify({ type: 'signal', key: data.key, data: message }));
       } else if (data.type === 'signal') {
         // BさんがAさんからのデータを受け取る
-        receivedPort = data.data;
+        // WASM側で付与された接頭辞を除去してポート番号のみを抽出
+        receivedPort = data.data.replace('SHARED_PORT:', '');
       }
     };
   });
@@ -120,7 +121,7 @@
 
           {#if receivedPort}
             <div class="result-area received">
-              <label>受信したデータ:</label>
+              <label>受信したポート番号:</label>
               <div class="data-display">
                 <code>{receivedPort}</code>
               </div>
