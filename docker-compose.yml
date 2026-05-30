@@ -1,0 +1,15 @@
+services:
+  port-sender:
+    build: .
+    container_name: port-sender-app
+    ports:
+      - "5173:5173"  # UI 画面用
+      - "8080:8080"  # WebSocket シグナリング用
+    volumes:
+      - .:/app
+      - /app/node_modules
+      # コンテナ内で生成されたWASMファイルをホスト側のpublicにも反映させたい場合は以下を有効にします
+      # - /app/public:/app/public
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
