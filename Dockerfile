@@ -8,9 +8,6 @@ COPY . .
 RUN GOOS=js GOARCH=wasm go build -o public/main.wasm src/main.go
 RUN GOOS=js GOARCH=wasm go build -o server/main.wasm server/main.go
 
-# Go ランタイム JS をコピー
-RUN cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" ./public/
-
 # Stage 2: Node.js 実行環境
 FROM node:22-bookworm
 
