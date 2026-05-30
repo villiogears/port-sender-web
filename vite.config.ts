@@ -5,6 +5,8 @@ import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'node:url';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // ESM環境で__dirnameを再現
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,5 +73,5 @@ const wasmSignalingPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [svelte(), wasmSignalingPlugin()]
+  plugins: [svelte(), wasmSignalingPlugin(), cloudflare()]
 });
