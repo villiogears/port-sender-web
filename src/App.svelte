@@ -33,17 +33,28 @@
     isWasmLoaded = true;
 
     // WebSocket接続
-    socket = new WebSocket("ws://localhost:8080/ws");
+    // 開発環境なら localhost:8080、本番環境なら Worker の URL を使用
+    const wsUrl = import.meta.env.DEV 
+      ? "ws://localhost:8080" 
+      : `wss://${window.location.hostname}/ws`; // 同一ドメインの /ws パスへ接続
+      
+    socket = new WebSocket(wsUrl);
+
+    socket.onerror = () => {
+      console.error("シグナリングサーバーに接続できません。Viteが開発モードで起動しているか確認してください。");
+    };
+
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log("Received:", data);
+
       // シグナリングサーバーからの転送処理
       if (data.type === 'join') {
         // Bさんが来たのでAさんがポートを送る
-        const message = window.formatPortMessage(portInput);
+        const message = window.formatPortMessage(String(portInput));
         socket.send(JSON.stringify({ type: 'signal', key: data.key, data: message }));
       } else if (data.type === 'signal') {
         // BさんがAさんからのデータを受け取る
-        // WASM側で付与された接頭辞を除去してポート番号のみを抽出
         receivedPort = data.data.replace('SHARED_PORT:', '');
       }
     };

@@ -51,7 +51,7 @@ const wasmSignalingPlugin = (): Plugin => ({
             // Go WASM内のロジックを呼び出し
             // @ts-ignore: global.processSignaling is defined by Go main()
             const responseJson = global.processSignaling(data.toString(), id);
-            
+
             if (responseJson) {
               const { targetId, payload } = JSON.parse(responseJson);
               const targetWs = clients.get(targetId);

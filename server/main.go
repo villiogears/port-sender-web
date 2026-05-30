@@ -47,7 +47,7 @@ func handleMessage(this js.Value, args []js.Value) interface{} {
 				TargetID: hostID,
 				Payload:  msg,
 			})
-			return res
+			return string(res)
 		}
 
 	case "signal":
@@ -65,7 +65,7 @@ func handleMessage(this js.Value, args []js.Value) interface{} {
 				TargetID: targetID,
 				Payload:  msg,
 			})
-			return res
+			return string(res)
 		}
 	}
 	return nil
